@@ -11,6 +11,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
@@ -42,15 +43,23 @@ import com.journeyapps.barcodescanner.BarcodeEncoder;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Random;
 
+import it.sauronsoftware.ftp4j.FTPAbortedException;
 import it.sauronsoftware.ftp4j.FTPClient;
+import it.sauronsoftware.ftp4j.FTPDataTransferException;
 import it.sauronsoftware.ftp4j.FTPDataTransferListener;
+import it.sauronsoftware.ftp4j.FTPException;
+import it.sauronsoftware.ftp4j.FTPIllegalReplyException;
 
 
 /**
@@ -59,7 +68,7 @@ import it.sauronsoftware.ftp4j.FTPDataTransferListener;
 public class AddProductFragment extends Fragment {
     private Myconstant myconstant = new Myconstant();
     private String idRecord, NameRecord, TypeRecord, amountTypeFruitString = "",
-            idTypeFruid = "", Name, Detail, Image = "https://www.androidthai.in.th/rmutk/Picture/product.png", Amount, Unit, Date, QRcode, AmountPd, UnitPd;
+            idTypeFruid = "", Name, Detail, Image = "https://www.androidthai.in.th/rmutk/Picture/product.png", Amount, Unit, Date, QRcode, AmountPd, UnitPd, ImageQR;
 
     private ImageView imageView;
     private Uri uri;
@@ -68,6 +77,10 @@ public class AddProductFragment extends Fragment {
     private EditText txtQRcode;
     private Button btnCreateQr;
     private ImageView imageeView;
+
+    private File file;
+    private Bitmap bitmap;
+    String nameImage;
 
 
 
@@ -82,41 +95,8 @@ public class AddProductFragment extends Fragment {
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        txtQRcode = getView().findViewById(R.id.txtQRcode);
-        btnCreateQr = getView().findViewById(R.id.btnCreateQr);
-        imageeView = getView().findViewById(R.id.imageeView);
 
-            btnCreateQr.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-
-                    String text = txtQRcode.getText().toString().trim();
-
-
-                    if(text != null){
-
-                        MultiFormatWriter multiFormatWriter = new MultiFormatWriter();
-
-                        try {
-
-
-                            BitMatrix bitMatrix = multiFormatWriter.encode(text, BarcodeFormat.QR_CODE, 500, 500);
-                            BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
-                            Bitmap bitmap = barcodeEncoder.createBitmap(bitMatrix);
-                            imageeView.setImageBitmap(bitmap);
-
-                        } catch (WriterException e) {
-                            e.printStackTrace();
-                        }
-                    }
-
-
-
-                }
-
-
-
-            });
+        ImageQR();
 
 
 //      Create RecyclerView
@@ -144,6 +124,82 @@ public class AddProductFragment extends Fragment {
 
 
     }// Main Method
+
+    private void ImageQR() {
+        txtQRcode = getView().findViewById(R.id.txtQRcode);
+        btnCreateQr = getView().findViewById(R.id.btnCreateQr);
+        imageeView = getView().findViewById(R.id.imageeView);
+
+        btnCreateQr.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                String text = txtQRcode.getText().toString().trim();
+
+
+                if(text != null){
+
+                    MultiFormatWriter multiFormatWriter = new MultiFormatWriter();
+
+                    try {
+
+                        BitMatrix bitMatrix = multiFormatWriter.encode(text, BarcodeFormat.QR_CODE, 500, 500);
+                        BarcodeEncoder barcodeEncoder = new BarcodeEncoder();
+                        bitmap = barcodeEncoder.createBitmap(bitMatrix);
+                        imageeView.setImageBitmap(bitmap);
+
+                        String[] strings = text.split("/");
+
+                        nameImage = strings[0] + ".png";
+
+                        ImageQR = "https://www.androidthai.in.th/rmutk/QRimage/" + nameImage;
+
+                        file = new File(getActivity().getCacheDir(), nameImage);
+
+
+
+
+                    } catch (WriterException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+
+
+            }
+
+
+
+        });
+    }
+
+    public class MyUploadPicture implements FTPDataTransferListener{
+        @Override
+        public void started() {
+            Toast.makeText(getActivity(), "Start Upload", Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        public void transferred(int i) {
+            Toast.makeText(getActivity(), "Continue Upload", Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        public void completed() {
+            Toast.makeText(getActivity(), "Complete Upload", Toast.LENGTH_SHORT).show();
+        }
+
+        @Override
+        public void aborted() {
+
+        }
+
+        @Override
+        public void failed() {
+
+        }
+    }
+
 
 
 
@@ -405,7 +461,63 @@ public class AddProductFragment extends Fragment {
 
                 } //if
 
-            }
+
+//                Upload Image QRimage
+                FTPClient ftpClient = new FTPClient();
+                try {
+
+                    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 0, byteArrayOutputStream);
+                    byte[] bytes = byteArrayOutputStream.toByteArray();
+
+                    FileOutputStream fileOutputStream = new FileOutputStream(file);
+                    fileOutputStream.write(bytes);
+                    fileOutputStream.flush();
+                    fileOutputStream.close();
+
+                    StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy
+                            .Builder().permitAll().build();
+                    StrictMode.setThreadPolicy(policy);
+
+
+                    ftpClient.connect("ftp.androidthai.in.th", 21);
+                    ftpClient.login("rmutk@androidthai.in.th", "Abc12345");
+                    ftpClient.setType(FTPClient.TYPE_BINARY);
+                    ftpClient.changeDirectory("QRimage");
+                    ftpClient.upload(file, new MyUploadPicture());
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    try {
+                        ftpClient.disconnect(true);
+                    } catch (Exception e1) {
+                        e1.printStackTrace();
+                    }
+                }
+
+//                save ImageQR to sd card
+
+                String root = Environment.getExternalStorageDirectory().toString();
+                File myDirectory = new File(root + "/sdcard/qr_images");
+                myDirectory.mkdirs();
+
+                //สร้างไฟล์ myDirectory
+                File file = new File(myDirectory, nameImage);
+
+
+                try {
+
+                    FileOutputStream fileOutputStream = new FileOutputStream(file);
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, fileOutputStream);
+                    fileOutputStream.flush();
+                    fileOutputStream.close();
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+
+            } // onClick
         });
 
 
@@ -429,7 +541,7 @@ public class AddProductFragment extends Fragment {
             //อัพโหลด
             AddDetailProductThread addDetailProductThread = new AddDetailProductThread(getActivity());
             addDetailProductThread.execute(idRecord, NameRecord, TypeRecord, idTypeFruid, Name,
-                    Detail, Image, Amount, Unit, Date, QRcode, AmountPd, UnitPd, myconstant.getUrlAddDetailProduct());
+                    Detail, Image, Amount, Unit, Date, QRcode, AmountPd, UnitPd,ImageQR, myconstant.getUrlAddDetailProduct());
             String result = addDetailProductThread.get();
 
             if (Boolean.parseBoolean(result)) {
