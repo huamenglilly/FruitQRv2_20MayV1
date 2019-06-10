@@ -150,7 +150,7 @@ public class AddProductFragment extends Fragment {
 
                         String[] strings = text.split("/");
 
-                        nameImage = strings[0] + ".png";
+                        nameImage = strings[0] + "_" + strings[1] + "_" + strings[2] + ".png";
 
                         ImageQR = "https://www.androidthai.in.th/rmutk/QRimage/" + nameImage;
 
@@ -181,7 +181,7 @@ public class AddProductFragment extends Fragment {
 
         @Override
         public void transferred(int i) {
-            Toast.makeText(getActivity(), "Continue Upload", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(getActivity(), "Continue Upload", Toast.LENGTH_SHORT).show();
         }
 
         @Override
@@ -215,6 +215,7 @@ public class AddProductFragment extends Fragment {
         //เรียง id + date
         QRcode = "ID" + findIdDetailProduct() + Date;
         textView.setText(QRcode);
+//        txtQRcode.setText(QRcode);
     }
 
 
@@ -304,6 +305,7 @@ public class AddProductFragment extends Fragment {
                         calendar1.set(year, month, dayOfMonth);
                         Date = dateFormat.format(calendar1.getTime());
                         textView.setText(Date);
+                        qrController();
 
                     }
                 }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
@@ -572,7 +574,7 @@ public class AddProductFragment extends Fragment {
 
         @Override
         public void transferred(int i) {
-            Toast.makeText(getActivity(), "Continue Uplaod", Toast.LENGTH_SHORT).show(); //กำลังอัพโหลด
+//            Toast.makeText(getActivity(), "Continue Uplaod", Toast.LENGTH_SHORT).show(); //กำลังอัพโหลด
         }
 
         @Override
