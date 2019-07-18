@@ -2,6 +2,7 @@ package kiky.beam.lilly.th.ac.rmutk.fruitqr;
 
 import android.content.Context;
 import android.os.AsyncTask;
+import android.util.Log;
 
 import com.squareup.okhttp.FormEncodingBuilder;
 import com.squareup.okhttp.OkHttpClient;
@@ -36,7 +37,7 @@ public class AddNameFruitThread extends AsyncTask<String, Void, String>  {
 
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.d("10JunV1", "e thread ==> " + e.toString()); //เทสสส
             return null;
         }
 
